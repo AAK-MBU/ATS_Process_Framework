@@ -1,0 +1,2 @@
+automation-server-client
+mbu-dev-shared-components>=3.0.0
