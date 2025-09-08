@@ -1,3 +1,7 @@
+"""
+This is the main entry point for the process
+"""
+
 import asyncio
 import logging
 import sys
@@ -11,6 +15,17 @@ async def populate_queue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
 
     logger.info("Hello from populate workqueue!")
+
+    some_external_source_of_items = []  # Replace with actual source of items
+
+    for item in some_external_source_of_items:
+        reference = item.get("id")  # Unique identifier for the item
+
+        data = {"item": item}
+
+        work_item = workqueue.add_item(data, reference)
+
+        logger.info(f"Added item to queue: {work_item}")
 
 
 async def process_workqueue(workqueue: Workqueue):
@@ -26,10 +41,13 @@ async def process_workqueue(workqueue: Workqueue):
 
             try:
                 # Process the item here
-                pass
+
+                continue
+
             except WorkItemError as e:
                 # A WorkItemError represents a soft error that indicates the item should be passed to manual processing or a business logic fault
                 logger.error(f"Error processing item: {data}. Error: {e}")
+
                 item.fail(str(e))
 
 
@@ -42,9 +60,9 @@ if __name__ == "__main__":
 
     # Queue management
     if "--queue" in sys.argv:
-        prod_workqueue.clear_workqueue("new")
         asyncio.run(populate_queue(prod_workqueue))
-        exit(0)
+
+        sys.exit(0)
 
     # Process workqueue
     asyncio.run(process_workqueue(prod_workqueue))
