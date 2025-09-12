@@ -1,6 +1,5 @@
 """Module for handling errors"""
 
-import os
 import traceback
 import smtplib
 from email.message import EmailMessage
@@ -9,12 +8,16 @@ from io import BytesIO
 
 from PIL import ImageGrab
 
+from mbu_dev_shared_components.database.connection import RPAConnection
+
 
 def send_error_email(error: Exception, add_screenshot: bool = False, process_name: str | None = None):
-    error_email = os.getenv("ErrorEmail")
-    error_sender = os.getenv("ErrorSender")
-    smtp_server = os.getenv("smtp_server")
-    smtp_port = os.getenv("smtp_port")
+    rpa_conn = RPAConnection(db_env="PROD", commit=False)
+    with rpa_conn:
+        error_email = rpa_conn.get_constant("ErrorEmail")["value"]
+        # error_sender = rpa_conn.get_constant("ErrorSender")["value"]  # Find in database...
+        smtp_server = rpa_conn.get_constant("smtp_server")["value"]
+        smtp_port = rpa_conn.get_constant("smtp_port")["value"]
     # Create message
     msg = EmailMessage()
     msg['to'] = error_email
