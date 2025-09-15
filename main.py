@@ -13,7 +13,8 @@ from mbu_rpa_core.process_states import CompletedState
 from processes.item_retriever import item_retriever
 from processes.process_item import process_item
 from processes.finalize_process import finalize_process
-from processes.error_handling import send_error_email
+from processes.error_handling import handle_error
+from helpers import ats_functions
 
 
 async def populate_queue(workqueue: Workqueue):
@@ -25,14 +26,21 @@ async def populate_queue(workqueue: Workqueue):
 
     items_to_queue = item_retriever()  # Replace with actual source of items
 
+    queue_references = ats_functions.get_workqueue_items(workqueue)
+
     for item in items_to_queue:
-        reference = item.get("id")  # Unique identifier for the item
+        reference = item.get("reference")  # Unique identifier for the item
 
         data = {"item": item}
 
-        work_item = workqueue.add_item(data, reference)
+        # Add item if reference is not already in queue
+        if reference not in queue_references:
+            work_item = workqueue.add_item(data, reference)
+            logger.info(f"Added item to queue: {work_item}")
 
-        logger.info(f"Added item to queue: {work_item}")
+        else:
+            logger.info(f"Reference: {reference} already in queue. Item: {item} not added")
+            print(f"Reference: {reference} already in queue. Item: {item} not added")
 
 
 async def process_workqueue(workqueue: Workqueue):
@@ -44,10 +52,10 @@ async def process_workqueue(workqueue: Workqueue):
 
     for item in workqueue:
         with item:
-            data = item.data  # Item data deserialized from json as dict
+            data, reference = ats_functions.get_item_info(item)  # Item data deserialized from json as dict
 
             try:
-                process_item(data)
+                process_item(data, reference)
 
                 completed_state = CompletedState.completed("Process completed without exceptions")  # Adjust message for specific purpose
                 item.complete(str(completed_state))
@@ -56,20 +64,16 @@ async def process_workqueue(workqueue: Workqueue):
 
             except ProcessError as e:
                 # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
-                logger.error(f"Error processing item: {data}. Error: {e}")
+                handle_error(error=e, log=logger.error, action=item.fail, item=item, send_mail=True, process_name=workqueue.name)
 
-                item.fail(str(e))
-
-                raise ProcessError from e
+                raise ProcessError("Process Failed") from e
 
             except BusinessError as e:
                 # A BusinessError indicates a breach of business logic or something else to be handled by business department
-                logger.info(f"A BusinessError was raised for item: {data}. Error: {e}")
-
-                item.pending_user(str(e))
+                handle_error(error=e, log=logger.info, item=item, action=item.pending_user)
 
 
-async def finalize():
+async def finalize(workqueue: Workqueue):
     """Finalize process."""
 
     logger = logging.getLogger(__name__)
@@ -81,36 +85,40 @@ async def finalize():
 
     except ProcessError as e:
         # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
-        logger.error(f"Error when finalizing. Error: {e}")
+        handle_error(error=e, log=logger.error, send_mail=True, process_name=workqueue.name)
 
         raise ProcessError from e
 
     except BusinessError as e:
         # A BusinessError indicates a breach of business logic or something else to be handled by business department
-        logger.info(f"A BusinessError was raised during finalizing. Error: {e}")
+        handle_error(error=e, log=logger.info)
 
 
 if __name__ == "__main__":
+
+    logger = logging.getLogger(__name__)
+
+    logger.info("Starting")
+
     ats = AutomationServer.from_environment()
 
     prod_workqueue = ats.workqueue()
     process = ats.process
 
-    # Initialize external systems for automation here..
-    try:
-        # Queue management
-        if "--queue" in sys.argv:
-            asyncio.run(populate_queue(prod_workqueue))
+    print(f"{ats = }, {prod_workqueue = }, {process = }")
 
-            sys.exit(0)
+    logger.info(f"{process = }")
 
-        if "--process" in sys.argv:
-            # Process workqueue
-            asyncio.run(process_workqueue(prod_workqueue))
+    # Queue management
+    if "--queue" in sys.argv:
+        asyncio.run(populate_queue(prod_workqueue))
 
-        if "--finalize" in sys.argv:
-            # Finalize process
-            asyncio.run(finalize())
+    if "--process" in sys.argv:
+        # Process workqueue
+        asyncio.run(process_workqueue(prod_workqueue))
 
-    except ProcessError as e:
-        send_error_email(e, process_name=process.name)
+    if "--finalize" in sys.argv:
+        # Finalize process
+        asyncio.run(finalize(prod_workqueue))
+
+    sys.exit(0)
