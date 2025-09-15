@@ -14,7 +14,29 @@ from processes.item_retriever import item_retriever
 from processes.process_item import process_item
 from processes.finalize_process import finalize_process
 from processes.error_handling import handle_error
-from helpers import ats_functions
+from processes.application_handler import startup, reset, close
+from helpers import ats_functions, config
+
+
+
+### REMOVE IN PRODUCTION ###
+import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+_old_request = requests.Session.request
+
+
+def unsafe_request(self, *args, **kwargs):
+    """
+    TESTING PURPOSES ONLY - DISABLES SSL VERIFICATION FOR ALL REQUESTS
+    """
+    kwargs['verify'] = False
+    return _old_request(self, *args, **kwargs)
+
+
+requests.Session.request = unsafe_request
+### REMOVE IN PRODUCTION ###
 
 
 async def populate_queue(workqueue: Workqueue):
@@ -50,25 +72,40 @@ async def process_workqueue(workqueue: Workqueue):
 
     logger.info("Hello from process workqueue!")
 
-    for item in workqueue:
-        with item:
-            data, reference = ats_functions.get_item_info(item)  # Item data deserialized from json as dict
+    startup()
 
+    error_count = 0
+
+    while error_count < config.MAX_RETRY:
+        for item in workqueue:
             try:
-                process_item(data, reference)
+                with item:
+                    data, reference = ats_functions.get_item_info(item)  # Item data deserialized from json as dict
 
-                completed_state = CompletedState.completed("Process completed without exceptions")  # Adjust message for specific purpose
-                item.complete(str(completed_state))
+                    try:
+                        process_item(data, reference)
 
-                continue
+                        completed_state = CompletedState.completed("Process completed without exceptions")  # Adjust message for specific purpose
+                        item.complete(str(completed_state))
+
+                        continue
+
+                    except BusinessError as e:
+                        # A BusinessError indicates a breach of business logic or something else to be handled by business department
+                        handle_error(error=e, log=logger.info, item=item, action=item.pending_user)
+
+                    except Exception as e:
+                        # Uncaught exceptions raised to ProcessErrors
+                        pe = ProcessError(str(e))
+                        raise pe from e
 
             except ProcessError as e:
                 # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
                 handle_error(error=e, log=logger.error, action=item.fail, item=item, send_mail=True, process_name=workqueue.name)
+                error_count += 1
+                reset()
 
-            except BusinessError as e:
-                # A BusinessError indicates a breach of business logic or something else to be handled by business department
-                handle_error(error=e, log=logger.info, item=item, action=item.pending_user)
+    close()
 
 
 async def finalize(workqueue: Workqueue):
@@ -81,15 +118,16 @@ async def finalize(workqueue: Workqueue):
     try:
         finalize_process()
 
-    except ProcessError as e:
-        # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
-        handle_error(error=e, log=logger.error, send_mail=True, process_name=workqueue.name)
-
-        raise ProcessError from e
-
     except BusinessError as e:
         # A BusinessError indicates a breach of business logic or something else to be handled by business department
         handle_error(error=e, log=logger.info)
+
+    except Exception as e:
+        pe = ProcessError(str(e))
+        # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
+        handle_error(error=pe, log=logger.error, send_mail=True, process_name=workqueue.name)
+
+        raise pe
 
 
 if __name__ == "__main__":
