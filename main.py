@@ -18,27 +18,6 @@ from processes.application_handler import startup, reset, close
 from helpers import ats_functions, config
 
 
-
-### REMOVE IN PRODUCTION ###
-import requests
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-_old_request = requests.Session.request
-
-
-def unsafe_request(self, *args, **kwargs):
-    """
-    TESTING PURPOSES ONLY - DISABLES SSL VERIFICATION FOR ALL REQUESTS
-    """
-    kwargs['verify'] = False
-    return _old_request(self, *args, **kwargs)
-
-
-requests.Session.request = unsafe_request
-### REMOVE IN PRODUCTION ###
-
-
 async def populate_queue(workqueue: Workqueue):
     """Populate the workqueue with items to be processed."""
 
