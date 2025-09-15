@@ -5,15 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "main.py",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "main.py",
-            "console": "integratedTerminal",
-            "args": [
-            ]
-        },
-        {
             "name": "main.py --queue",
             "type": "debugpy",
             "request": "launch",
@@ -22,6 +13,26 @@
             "args": [
                 "--queue"
             ]
-        }
+        },
+        {
+        "name": "main.py --process",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--process"
+            ]
+        },
+        {
+        "name": "main.py --finalize",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--finalize"
+            ]
+        },
     ]
 }
