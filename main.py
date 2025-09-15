@@ -29,7 +29,7 @@ async def populate_queue(workqueue: Workqueue):
     queue_references = ats_functions.get_workqueue_items(workqueue)
 
     for item in items_to_queue:
-        reference = item.get("reference")  # Unique identifier for the item
+        reference = str(item.get("reference"))  # Unique identifier for the item
 
         data = {"item": item}
 
@@ -65,8 +65,6 @@ async def process_workqueue(workqueue: Workqueue):
             except ProcessError as e:
                 # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
                 handle_error(error=e, log=logger.error, action=item.fail, item=item, send_mail=True, process_name=workqueue.name)
-
-                raise ProcessError("Process Failed") from e
 
             except BusinessError as e:
                 # A BusinessError indicates a breach of business logic or something else to be handled by business department
