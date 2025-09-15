@@ -96,18 +96,10 @@ async def finalize(workqueue: Workqueue):
 
 if __name__ == "__main__":
 
-    logger = logging.getLogger(__name__)
-
-    logger.info("Starting")
-
     ats = AutomationServer.from_environment()
 
     prod_workqueue = ats.workqueue()
     process = ats.process
-
-    print(f"{ats = }, {prod_workqueue = }, {process = }")
-
-    logger.info(f"{process = }")
 
     # Queue management
     if "--queue" in sys.argv:

@@ -34,6 +34,7 @@ def handle_error(
 
 
 def send_error_email(error: ProcessError | BusinessError, add_screenshot: bool = False, process_name: str | None = None):
+    """Send email to defined recipient with error information"""
     rpa_conn = RPAConnection(db_env="PROD", commit=False)
     with rpa_conn:
         error_email = rpa_conn.get_constant("Error Email")["value"]

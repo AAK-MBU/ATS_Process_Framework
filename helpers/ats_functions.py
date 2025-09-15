@@ -1,6 +1,6 @@
 """Helper module to call some functionality in Automation Server using the API"""
-import requests
 import os
+import requests
 from dotenv import load_dotenv
 
 from automation_server_client import Workqueue, WorkItem
@@ -41,4 +41,5 @@ def get_workqueue_items(workqueue: Workqueue):
 
 
 def get_item_info(item: WorkItem):
+    """Unpack item"""
     return item.data["item"]["data"], item.data["item"]["reference"]
