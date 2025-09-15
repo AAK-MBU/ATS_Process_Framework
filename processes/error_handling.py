@@ -1,6 +1,6 @@
 """Module for handling errors"""
 
-import traceback
+import json
 import smtplib
 from email.message import EmailMessage
 import base64
@@ -9,13 +9,35 @@ from io import BytesIO
 from PIL import ImageGrab
 
 from mbu_dev_shared_components.database.connection import RPAConnection
+from mbu_rpa_core.exceptions import ProcessError, BusinessError
+from automation_server_client import WorkItem
 
 
-def send_error_email(error: Exception, add_screenshot: bool = False, process_name: str | None = None):
+def handle_error(
+        error: ProcessError | BusinessError,
+        log,
+        item: WorkItem | None = None,
+        action = None,
+        send_mail = False,
+        add_screenshot = True,
+        process_name = None,
+):
+    """Function to log error"""
+    error_json = json.dumps(error.__dictinfo__())
+    log_msg = f"Error: {error}"
+    if item:
+        log_msg = f"{repr(error)} raised for item: {item}. " + log_msg
+        action(error_json)
+    log(log_msg)
+    if send_mail:
+        send_error_email(error=error, add_screenshot=add_screenshot, process_name=process_name)
+
+
+def send_error_email(error: ProcessError | BusinessError, add_screenshot: bool = False, process_name: str | None = None):
     rpa_conn = RPAConnection(db_env="PROD", commit=False)
     with rpa_conn:
-        error_email = rpa_conn.get_constant("ErrorEmail")["value"]
-        # error_sender = rpa_conn.get_constant("ErrorSender")["value"]  # Find in database...
+        error_email = rpa_conn.get_constant("Error Email")["value"]
+        error_sender = rpa_conn.get_constant("Email Friend")["value"]  # Find in database...
         smtp_server = rpa_conn.get_constant("smtp_server")["value"]
         smtp_port = rpa_conn.get_constant("smtp_port")["value"]
     # Create message
@@ -31,13 +53,14 @@ def send_error_email(error: Exception, add_screenshot: bool = False, process_nam
         screenshot = grab_screenshot()
 
     # Create an HTML message with the exception and screenshot
+    error_dict = error.__dictinfo__()
     html_message = (
         f"""
         <html>
             <body>
-                <p>Error type: {type(error).__name__}</p>
-                <p>Error message: {str(error)}</p>
-                <p>{traceback.format_exc()}</p>
+                <p>Error type: {error_dict['type']}</p>
+                <p>Error message: {error_dict['message']}</p>
+                <p>{error_dict['traceback']}</p>
         """ +
         f'      <img src="data:image/png;base64,{screenshot}" alt="Screenshot">' if add_screenshot else '' +
         """
