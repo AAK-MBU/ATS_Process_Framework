@@ -3,5 +3,7 @@
 
 def item_retriever() -> list[dict]:
     """Function to populate queue"""
-    items = []
+    data = []
+    references = []
+    items = [{"reference": ref, "data": d} for ref, d in zip(references, data)]
     return items
