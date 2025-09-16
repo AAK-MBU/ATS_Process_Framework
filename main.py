@@ -106,7 +106,7 @@ async def finalize(workqueue: Workqueue):
         # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
         handle_error(error=pe, log=logger.error, send_mail=True, process_name=workqueue.name)
 
-        raise pe
+        raise pe from e
 
 
 if __name__ == "__main__":
