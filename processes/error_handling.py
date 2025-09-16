@@ -50,25 +50,36 @@ def send_error_email(error: ProcessError | BusinessError, add_screenshot: bool =
         + f": {process_name}" if process_name else ""
     )
 
-    if add_screenshot:
-        screenshot = grab_screenshot()
-
     # Create an HTML message with the exception and screenshot
     error_dict = error.__dictinfo__()
-    html_message = (
-        f"""
-        <html>
-            <body>
-                <p>Error type: {error_dict['type']}</p>
-                <p>Error message: {error_dict['message']}</p>
-                <p>{error_dict['traceback']}</p>
-        """ +
-        f'      <img src="data:image/png;base64,{screenshot}" alt="Screenshot">' if add_screenshot else '' +
-        """
-            </body>
-        </html>
-        """
-    )
+
+    if add_screenshot:
+        screenshot = grab_screenshot()    
+        html_message = (
+            f"""
+                <html>
+                    <body>
+                        <p>Error type: {error_dict['type']}</p>
+                        <p>Error message: {error_dict['message']}</p>
+                        <p>{error_dict['traceback']}</p>
+                        <img src="data:image/png;base64,{screenshot}" alt="Screenshot">
+                    </body>
+                </html>
+            """
+        )
+    else:    
+        html_message = (
+            f"""
+                <html>
+                    <body>
+                        <p>Error type: {error_dict['type']}</p>
+                        <p>Error message: {error_dict['message']}</p>
+                        <p>{error_dict['traceback']}</p>
+                    </body>
+                </html>
+            """
+        )
+        
 
     msg.set_content("Please enable HTML to view this message.")
     msg.add_alternative(html_message, subtype='html')
