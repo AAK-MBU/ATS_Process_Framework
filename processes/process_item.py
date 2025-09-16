@@ -4,4 +4,4 @@
 
 def process_item(item_data: dict, item_reference: str):
     """Function to handle item processing"""
-    print(item_data)
+    print(item_data, item_reference)
