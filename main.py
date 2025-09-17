@@ -46,7 +46,7 @@ async def process_workqueue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
     logger.info("Processing workqueue...")
 
-    startup()
+    startup(logger=logger)
 
     error_count = 0
 
@@ -78,10 +78,10 @@ async def process_workqueue(workqueue: Workqueue):
                 # A ProcessError indicates a problem with the RPA process to be handled by the RPA team
                 handle_error(error=e, log=logger.error, action=item.fail, item=item, send_mail=True, process_name=workqueue.name)
                 error_count += 1
-                reset()
+                reset(logger=logger)
 
     logger.info("Finished processing workqueue.")
-    close()
+    close(logger=logger)
 
 
 async def finalize(workqueue: Workqueue):
