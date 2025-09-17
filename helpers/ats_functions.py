@@ -24,17 +24,26 @@ def get_workqueue_items(workqueue: Workqueue):
 
     headers = {"Authorization": f"Bearer {token}"}
 
-    full_url = f"{url}/workqueues/{workqueue.id}/items"
+    workqueue_items = set()
+    page = 1
+    size = 200  # max allowed
 
-    response = requests.get(full_url, headers=headers, timeout=60)
+    while True:
+        full_url = f"{url}/workqueues/{workqueue.id}/items?page={page}&size={size}"
+        response = requests.get(full_url, headers=headers, timeout=60)
+        response.raise_for_status()
 
-    res_json = response.json().get("items", [])
-    print(res_json)
+        res_json = response.json().get("items", [])
 
-    for row in res_json:
-        ref = row.get("reference")
+        if not res_json:
+            break
 
-        workqueue_items.add(ref)
+        for row in res_json:
+            ref = row.get("reference")
+            if ref:
+                workqueue_items.add(ref)
+
+        page += 1
 
     return workqueue_items
 
