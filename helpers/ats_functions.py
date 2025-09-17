@@ -1,9 +1,10 @@
 """Helper module to call some functionality in Automation Server using the API"""
-import os
-import requests
-from dotenv import load_dotenv
 
-from automation_server_client import Workqueue, WorkItem
+import os
+
+import requests
+from automation_server_client import WorkItem, Workqueue
+from dotenv import load_dotenv
 
 
 def get_workqueue_items(workqueue: Workqueue):
@@ -21,9 +22,7 @@ def get_workqueue_items(workqueue: Workqueue):
     if not url or not token:
         raise EnvironmentError("ATS_URL or ATS_TOKEN is not set in the environment")
 
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
+    headers = {"Authorization": f"Bearer {token}"}
 
     full_url = f"{url}/workqueues/{workqueue.id}/items"
 

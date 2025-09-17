@@ -10,46 +10,41 @@ from automation_server_client import AutomationServer, Workqueue
 from mbu_rpa_core.exceptions import BusinessError, ProcessError
 from mbu_rpa_core.process_states import CompletedState
 
-from processes.item_retriever import item_retriever
-from processes.process_item import process_item
-from processes.finalize_process import finalize_process
-from processes.error_handling import handle_error
-from processes.application_handler import startup, reset, close
 from helpers import ats_functions, config
+from processes.application_handler import close, reset, startup
+from processes.error_handling import handle_error
+from processes.finalize_process import finalize_process
+from processes.process_item import process_item
+from processes.queue_handler import concurrent_add, retrieve_items_for_queue
 
 
 async def populate_queue(workqueue: Workqueue):
     """Populate the workqueue with items to be processed."""
 
     logger = logging.getLogger(__name__)
+    logger.info("Populating workqueue...")
 
-    logger.info("Hello from populate workqueue!")
+    items_to_queue = retrieve_items_for_queue()  # Replace with actual source of items
 
-    items_to_queue = item_retriever()  # Replace with actual source of items
+    queue_references = set(str(r) for r in ats_functions.get_workqueue_items(workqueue))
 
-    queue_references = ats_functions.get_workqueue_items(workqueue)
-
+    new_items: list[dict] = []
     for item in items_to_queue:
-        reference = str(item.get("reference"))  # Unique identifier for the item
-
-        data = {"item": item}
-
-        # Add item if reference is not already in queue
-        if reference not in queue_references:
-            work_item = workqueue.add_item(data, reference)
-            logger.info(f"Added item to queue: {work_item}")
-
-        else:
+        reference = str(item.get("reference") or "")
+        if reference and reference in queue_references:
             logger.info(f"Reference: {reference} already in queue. Item: {item} not added")
-            print(f"Reference: {reference} already in queue. Item: {item} not added")
+        else:
+            new_items.append(item)
+
+    await concurrent_add(workqueue, new_items, logger)
+    logger.info("Finished populating workqueue.")
 
 
 async def process_workqueue(workqueue: Workqueue):
     """Process items from the workqueue."""
 
     logger = logging.getLogger(__name__)
-
-    logger.info("Hello from process workqueue!")
+    logger.info("Processing workqueue...")
 
     startup()
 
@@ -62,6 +57,7 @@ async def process_workqueue(workqueue: Workqueue):
                     data, reference = ats_functions.get_item_info(item)  # Item data deserialized from json as dict
 
                     try:
+                        logger.info(f"Processing item with reference: {reference}")
                         process_item(data, reference)
 
                         completed_state = CompletedState.completed("Process completed without exceptions")  # Adjust message for specific purpose
@@ -84,6 +80,7 @@ async def process_workqueue(workqueue: Workqueue):
                 error_count += 1
                 reset()
 
+    logger.info("Finished processing workqueue.")
     close()
 
 
@@ -92,10 +89,11 @@ async def finalize(workqueue: Workqueue):
 
     logger = logging.getLogger(__name__)
 
-    logger.info("Hello from finalize!")
+    logger.info("Finalizing process...")
 
     try:
         finalize_process()
+        logger.info("Finished finalizing process.")
 
     except BusinessError as e:
         # A BusinessError indicates a breach of business logic or something else to be handled by business department
