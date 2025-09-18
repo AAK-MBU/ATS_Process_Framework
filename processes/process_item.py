@@ -4,4 +4,5 @@
 
 def process_item(item_data: dict, item_reference: str):
     """Function to handle item processing"""
-    print(item_data, item_reference)
+    assert item_data, "Item data is required"
+    assert item_reference, "Item reference is required"
