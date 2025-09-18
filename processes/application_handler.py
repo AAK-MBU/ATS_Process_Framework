@@ -1,30 +1,32 @@
 """Module for handling application startup, and close"""
 
+import logging
 
-def startup():
+
+def startup(logger: logging.Logger):
     """Function for starting applications"""
-    return
+    logger.info("Starting applications...")
 
 
-def soft_close():
+def soft_close(logger: logging.Logger):
     """Function for closing applications softly"""
-    return
+    logger.info("Closing applications softly...")
 
 
-def hard_close():
+def hard_close(logger: logging.Logger):
     """Function for closing applications hard"""
-    return
+    logger.info("Closing applications hard...")
 
 
-def close():
+def close(logger: logging.Logger):
     """Function for closing applications softly or hardly if necessary"""
     try:
-        soft_close()
+        soft_close(logger)
     except Exception:
-        hard_close()
+        hard_close(logger)
 
 
-def reset():
+def reset(logger: logging.Logger):
     """Function for resetting application"""
-    close()
-    startup()
+    close(logger)
+    startup(logger)
