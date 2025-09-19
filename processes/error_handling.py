@@ -83,6 +83,7 @@ def send_error_email(
         ]  # Find in database...
         smtp_server = rpa_conn.get_constant("smtp_server")["value"]
         smtp_port = rpa_conn.get_constant("smtp_port")["value"]
+
     # Create message
     msg = EmailMessage()
     msg["to"] = error_email
