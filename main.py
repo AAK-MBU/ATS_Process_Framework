@@ -101,6 +101,8 @@ async def process_workqueue(workqueue: Workqueue):
                 error_count += 1
                 reset(logger=logger)
 
+        break
+
     logger.info("Finished processing workqueue.")
     close(logger=logger)
 
