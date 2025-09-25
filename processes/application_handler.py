@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_app():
+    """Function to get the application instance"""
     # ruff: noqa: PLW0602
     global APP
     return APP

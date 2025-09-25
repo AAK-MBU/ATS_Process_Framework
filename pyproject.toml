@@ -9,6 +9,7 @@ dependencies = [
     "mbu-dev-shared-components>=3.0.0",
     "mbu-rpa-core",
     "pillow",
+    "ruff"
 ]
 
 [tool.uv.sources]
@@ -53,3 +54,16 @@ select = [
 
 [tool.ruff.format]
 # Use the formatter; CI step already checks it with `ruff format --check .`
+
+[tool.pyright]
+include = ["."]
+exclude = [
+  "venv",
+  ".venv",
+  "build",
+  "dist",
+  "__pycache__"
+]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"   # or "basic"
+reportMissingTypeStubs = true
