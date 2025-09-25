@@ -1,9 +1,8 @@
 """Module to hande queue population"""
 
 import asyncio
-import logging
-
 import json
+import logging
 
 from automation_server_client import Workqueue
 
@@ -55,7 +54,7 @@ async def concurrent_add(
         async with sem:
             for attempt in range(1, config.MAX_RETRIES + 1):
                 try:
-                    work_item = await asyncio.to_thread(
+                    await asyncio.to_thread(
                         workqueue.add_item,
                         data,
                         reference
@@ -93,5 +92,4 @@ async def concurrent_add(
     logger.info(
         f"Summary: {successes} succeeded, {failures} failed out of {len(results)}"
     )
-
 
