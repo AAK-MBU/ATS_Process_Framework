@@ -9,6 +9,7 @@ dependencies = [
     "mbu-dev-shared-components>=3.0.0",
     "mbu-rpa-core",
     "pillow",
+    "ruff"
 ]
 
 [tool.uv.sources]
